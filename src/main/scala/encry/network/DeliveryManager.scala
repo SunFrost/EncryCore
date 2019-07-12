@@ -158,8 +158,10 @@ class DeliveryManager(influxRef: Option[ActorRef],
               s": ${spam.keys.map(Algos.encode)}.")
           receivedSpamModifiers = Map.empty
         }
+        logger.debug(s"fm: ${fm.keys.map(Algos.encode).mkString(",")}")
         val filteredModifiers: Seq[(ModifierId, Array[Byte])] = fm.filterNot { case (modId, _) => history.contains(modId) }.toSeq
         //todo check this logic
+        logger.debug(s"filteredModifiers: ${filteredModifiers.map(elem => Algos.encode(elem._1)).mkString(",")}")
         downloadedModifiersValidator ! ModifiersForValidating(remote, typeId, filteredModifiers)
       case _ => logger.debug(s"DeliveryManager got invalid type of DataFromPeer message!")
     }
@@ -425,7 +427,7 @@ class DeliveryManager(influxRef: Option[ActorRef],
         val shuffle: IndexedSeq[(ConnectedPeer, HistoryComparisonResult)] = Random.shuffle(resultedPeerCollection)
         val cP = shuffle.last._1
         influxRef.foreach(_ ! SendDownloadRequest(modifierTypeId, modifierIds))
-        if (modifierTypeId != Transaction.modifierTypeId)
+        //if (modifierTypeId != Transaction.modifierTypeId)
           logger.debug(s"requestModifies for peer ${cP.socketAddress} for mods: ${modifierIds.map(Algos.encode).mkString(",")}")
         requestModifies(history, cP, modifierTypeId, modifierIds, isBlockChainSynced, isMining)
       } else logger.debug(s"BlockChain is not synced. There is no nodes, which we can connect with.")
@@ -470,6 +472,7 @@ class DeliveryManager(influxRef: Option[ActorRef],
       }
       //if (expectedModifiers.isEmpty) context.parent ! SendLocalSyncInfo
     } else {
+      logger.debug(s"Mod with id ${Algos.encode(mId)} of type: $mTid - spam")
       receivedSpamModifiers = receivedSpamModifiers - toKey(mId) + (toKey(mId) -> peer)
       priorityCalculator = priorityCalculator.decrementRequest(peer.socketAddress)
     }

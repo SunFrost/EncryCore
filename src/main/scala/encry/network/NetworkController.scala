@@ -1,6 +1,7 @@
 package encry.network
 
 import java.net.{InetAddress, InetSocketAddress, NetworkInterface, URI}
+
 import akka.actor._
 import akka.actor.SupervisorStrategy.Restart
 import akka.io.{IO, Tcp}
@@ -13,7 +14,9 @@ import encry.network.PeerConnectionHandler._
 import encry.network.PeerConnectionHandler.ReceivableMessages.StartInteraction
 import encry.network.PeersKeeper._
 import encry.settings.EncryAppSettings
-import org.encryfoundation.common.network.BasicMessagesRepo.NetworkMessage
+import org.encryfoundation.common.network.BasicMessagesRepo.{ModifiersNetworkMessage, NetworkMessage}
+import org.encryfoundation.common.utils.Algos
+
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.language.{existentials, postfixOps}
@@ -71,6 +74,11 @@ class NetworkController(settings: EncryAppSettings,
   def businessLogic: Receive = {
     case MessageFromNetwork(message, Some(remote)) if message.isValid(settings.network.syncPacketLength) =>
       logger.debug(s"Got ${message.messageName} on the NetworkController.")
+      message match {
+        case ModifiersNetworkMessage(data) =>
+          logger.debug(s"Mod type: ${data._1} with ids: ${data._2.keys.map(Algos.encode).mkString(",")}")
+        case _ => //nothing
+      }
       findHandler(message, message.NetworkMessageTypeID, remote, messagesHandlers)
     case MessageFromNetwork(message, Some(remote)) =>
       peersKeeper ! BanPeer(remote, InvalidNetworkMessage(message.messageName))
