@@ -66,6 +66,7 @@ class Mempool(settings: EncryAppSettings,
 
   def mainLogic(state: UtxoState): Receive = {
     case TransactionsFromRemote(txs) =>
+      logger.info(s"Get txs: ${txs.map(tx => Algos.encode(tx.id)).mkString(",")}")
       memoryPool = validateAndPutTransactions(txs.toIndexedSeq, memoryPool, state, fromNetwork = true)
     case TickForRemoveExpired => memoryPool = cleanMemoryPoolFromExpired(memoryPool)
     case GetMempoolSize => sender() ! memoryPool.size
@@ -120,12 +121,14 @@ class Mempool(settings: EncryAppSettings,
       tx.semanticValidity.isSuccess && !currentMemoryPool.contains(toKey(tx.id))
       //&& currentState.validate(tx).isSuccess
     )
-    if (memoryPool.size + validatedTransactions.size <= settings.node.mempoolMaxCapacity)
+    if (memoryPool.size + validatedTransactions.size <= settings.node.mempoolMaxCapacity) {
+      logger.info("put tx, memoryPool.size + validatedTransactions.size <= settings.node.mempoolMaxCapacity")
       validatedTransactions.foldLeft(memoryPool) { case (pool, tx) =>
         if (fromNetwork) context.system.eventStream.publish(SuccessfulTransaction(tx))
         pool.updated(toKey(tx.id), tx)
       }
-    else {
+    } else {
+      logger.info("max mempool capacity")
       val filteredMemoryPool: HashMap[WrappedIdAsKey, Transaction] = cleanMemoryPoolFromExpired(memoryPool)
       val availableNumberOfTransactions: Int = settings.node.mempoolMaxCapacity - filteredMemoryPool.size
       val transactionsForAdding: IndexedSeq[Transaction] = validatedTransactions.take(availableNumberOfTransactions)
