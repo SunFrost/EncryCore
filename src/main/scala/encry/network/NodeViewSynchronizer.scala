@@ -147,7 +147,10 @@ class NodeViewSynchronizer(influxRef: Option[ActorRef],
           s"node is not synced, so ignore msg")
       case InvNetworkMessage(invData) =>
         if (invData._1 == Transaction.modifierTypeId) {
-          if (chainSynced) memoryPoolRef ! CompareTransactionsWithUnconfirmed(remote, invData._2.toIndexedSeq)
+          if (chainSynced) {
+            logger.debug(s"Get inv with tx: ${invData._2.map(Algos.encode).mkString(",")}")
+            memoryPoolRef ! CompareTransactionsWithUnconfirmed(remote, invData._2.toIndexedSeq)
+          }
           else logger.debug(s"Get inv with tx: ${invData._2.map(Algos.encode).mkString(",")}") // do nothing
         }
         else if (invData._1 != Payload.modifierTypeId) {
