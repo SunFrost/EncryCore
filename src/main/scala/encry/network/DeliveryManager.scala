@@ -274,6 +274,7 @@ class DeliveryManager(influxRef: Option[ActorRef],
               context.system
                 .scheduler.scheduleOnce(settings.network.deliveryTimeout)(self ! CheckDelivery(peer, mTypeId, id)) -> 1)
           }
+        logger.info(s"Add to expected: ${requestedModIds.keys.map(key => Algos.encode(key.toArray)).mkString(",")} for peer ${peer.socketAddress}")
         expectedModifiers = expectedModifiers.updated(peer.socketAddress, requestedModIds)
       }
     }
@@ -320,8 +321,10 @@ class DeliveryManager(influxRef: Option[ActorRef],
     * @param peer - peer from which we possibly expecting modifier
     * @return 'true' if we are expecting this modifier from this peer otherwise 'false'
     */
-  def isExpecting(mId: ModifierId, peer: ConnectedPeer): Boolean =
+  def isExpecting(mId: ModifierId, peer: ConnectedPeer): Boolean = {
+    logger.info(s"Expecting from ${peer}: ${expectedModifiers.get(peer.socketAddress).map(_.keys.map(key => Algos.encode(key.toArray)).mkString(","))}")
     expectedModifiers.getOrElse(peer.socketAddress, Map.empty).contains(toKey(mId))
+  }
 
   /**
     * Clear the 'receivedSpamModifiers' collection
