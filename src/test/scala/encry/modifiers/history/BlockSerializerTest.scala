@@ -1,5 +1,6 @@
 package encry.modifiers.history
 
+import BlockProto.BlockProtoMessage
 import encry.modifiers.mempool.TransactionFactory
 import encry.utils.{EncryGenerator, TestHelper}
 import org.encryfoundation.common.crypto.equihash.EquihashSolution
@@ -27,7 +28,7 @@ class BlockSerializerTest extends FunSuite with EncryGenerator {
     )
 
     val factory = TestHelper
-    val keys = factory.genKeys(10)
+    val keys = factory.genKeys(10000)
 
     val fee = factory.Props.txFee
     val timestamp = 12345678L
@@ -42,10 +43,17 @@ class BlockSerializerTest extends FunSuite with EncryGenerator {
 
     val block = Block(blockHeader,blockPayload)
 
+    val t = System.currentTimeMillis()
     val blockSererialized = BlockSerializer.toBytes(block)
 
+    val t1 = System.currentTimeMillis()
     val blockDeserealized = BlockSerializer.parseBytes(blockSererialized).get
 
     assert(Algos.hash(block.bytes) sameElements Algos.hash(blockDeserealized.bytes), "Block bytes mismatch.")
+
+    val protoBytes = BlockProtoSerializer.toProto(block).toByteArray
+    val protoBlock = BlockProtoSerializer.fromProto(BlockProtoMessage.parseFrom(protoBytes)).get
+
+    assert(Algos.hash(block.bytes) sameElements Algos.hash(protoBlock.bytes), "Proto Block bytes mismatch.")
   }
 }

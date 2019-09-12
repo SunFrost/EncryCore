@@ -33,6 +33,8 @@ class DownloadedModifiersValidator(settings: EncryAppSettings,
 
   def workingCycle(history: History): Receive = {
     case ModifiersForValidating(remote, typeId, filteredModifiers) if typeId != Transaction.modifierTypeId =>
+      encry.utils.PerfomanceUtils.start("non Trans")
+
       filteredModifiers.foreach { case (id, bytes) =>
         ModifiersToNetworkUtils.fromProto(typeId, bytes) match {
           case Success(modifier) if ModifiersToNetworkUtils.isSyntacticallyValid(modifier) =>
@@ -40,6 +42,7 @@ class DownloadedModifiersValidator(settings: EncryAppSettings,
               s"Sending validated modifier to NodeViewHolder")
             influxRef.foreach(_ ! ValidatedModifierFromNetwork(typeId))
             nodeViewHolder ! ModifierFromRemote(modifier)
+            println(s"modifier: $modifier")
           case Success(modifier) =>
             logger.info(s"Modifier with id: ${modifier.encodedId} of type: $typeId invalid cause of: isSyntacticallyValid = false")
             peersKeeper ! BanPeer(remote, SyntacticallyInvalidPersistentModifier)
@@ -50,10 +53,16 @@ class DownloadedModifiersValidator(settings: EncryAppSettings,
             nodeViewSync ! InvalidModifier(id)
         }
       }
+      encry.utils.PerfomanceUtils.finish("non Trans")
+      encry.utils.PerfomanceUtils.printTimes()
 
     case ModifiersForValidating(remote, typeId, filteredModifiers) => typeId match {
-      case Transaction.modifierTypeId => filteredModifiers
-        .foreach { case (id, bytes) =>
+      case Transaction.modifierTypeId =>
+        //println(s"ModifiersForValidating typeId: $typeId")
+        //println(s"filteredModifiers : ${filteredModifiers.keys}")
+        encry.utils.PerfomanceUtils.start("Trans")
+
+        filteredModifiers.foreach { case (id, bytes) =>
           Try(TransactionProtoSerializer.fromProto(TransactionProtoMessage.parseFrom(bytes))).flatten match {
             case Success(tx) if tx.semanticValidity.isSuccess => memoryPoolRef ! NewTransaction(tx)
             case Success(tx) =>
@@ -66,6 +75,9 @@ class DownloadedModifiersValidator(settings: EncryAppSettings,
               logger.info(s"Received modifier from $remote can't be parsed cause of: ${ex.getMessage}.")
           }
         }
+        encry.utils.PerfomanceUtils.finish("Trans")
+        encry.utils.PerfomanceUtils.printTimes()
+
     }
     case UpdatedHistory(historyReader) => context.become(workingCycle(historyReader))
     case msg => logger.info(s"Got $msg on DownloadedModifiersValidator")
