@@ -66,7 +66,7 @@ libraryDependencies ++= Seq(
   "org.rudogma" %% "supertagged" % "1.4",
   "org.scorexfoundation" %% "iodb" % "0.3.2",
   "io.spray" %% "spray-json" % "1.3.3",
-  "org.encry" %% "encry-common" % "0.9.0",
+//  "org.encry" %% "encry-common" % "0.9.0",
   "org.scalatest" %% "scalatest" % "3.0.5",
   "org.scalactic" %% "scalactic" % "3.0.5",
   "de.heikoseeberger" %% "akka-http-circe" % "1.20.1",
@@ -90,6 +90,8 @@ libraryDependencies ++= Seq(
   "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
   "com.google.guava" % "guava" % "27.1-jre"
 ) ++ databaseDependencies ++ apiDependencies ++ loggingDependencies ++ testingDependencies ++ monitoringDependencies
+
+unmanagedJars in Compile += file("/home/capdev/Projects/Encry/EncryCore/libs/encry-common-assembly-0.9.0.jar")
 
 resolvers ++= Seq("Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/",
   "SonaType" at "https://oss.sonatype.org/content/groups/public",

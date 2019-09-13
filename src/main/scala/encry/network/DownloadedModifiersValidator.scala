@@ -58,8 +58,6 @@ class DownloadedModifiersValidator(settings: EncryAppSettings,
 
     case ModifiersForValidating(remote, typeId, filteredModifiers) => typeId match {
       case Transaction.modifierTypeId =>
-        //println(s"ModifiersForValidating typeId: $typeId")
-        //println(s"filteredModifiers : ${filteredModifiers.keys}")
         encry.utils.PerfomanceUtils.start("Trans")
 
         filteredModifiers.foreach { case (id, bytes) =>

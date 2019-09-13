@@ -29,7 +29,10 @@ class DownloadedModifiersValidatorSpeedTests extends WordSpecLike
 
   val settingsWithAllPeers: EncryAppSettings = NetworkUtils.TestNetworkSettings.read("MainTestSettings.conf")
 
-  override def afterAll(): Unit = system.terminate()
+  override def afterAll(): Unit = {
+    org.encryfoundation.common.utils.PerfomanceUtils.printTimes()
+    system.terminate()
+  }
 
   "DownloadedModifiersValidatorTests" should {
     "speed" in {
@@ -59,7 +62,7 @@ class DownloadedModifiersValidatorSpeedTests extends WordSpecLike
 
       nodeViewSync.send(downloadedModifiersValidator, UpdatedHistory(historyWith10Blocks._1))
 
-      val headerMods: Map[ModifierId, Array[Byte]] = (historyWith10Blocks._2.map(b =>
+      lazy val headerMods: Map[ModifierId, Array[Byte]] = (historyWith10Blocks._2.map(b =>
         b.header.id -> HeaderProtoSerializer.toProto(b.header).toByteArray
       )).toMap
 
@@ -67,27 +70,25 @@ class DownloadedModifiersValidatorSpeedTests extends WordSpecLike
         b.payload.id -> PayloadProtoSerializer.toProto(b.payload).toByteArray
       )).toMap
 
-      println(s"txs: ${historyWith10Blocks._2.head.payload.txs.size}")
-
-      val transactionsMods: Map[ModifierId, Array[Byte]] = (historyWith10Blocks._2.head.payload.txs.map(tx =>
+      lazy val transactionsMods: Map[ModifierId, Array[Byte]] = (historyWith10Blocks._2.head.payload.txs.map(tx =>
         tx.id -> TransactionProtoSerializer.toProto(tx).toByteArray
       )).toMap
 
-      deliveryManager.send(downloadedModifiersValidator, ModifiersForValidating(connectedPeer, Header.modifierTypeId, headerMods))
+      //deliveryManager.send(downloadedModifiersValidator, ModifiersForValidating(connectedPeer, Header.modifierTypeId, headerMods))
       deliveryManager.send(downloadedModifiersValidator, ModifiersForValidating(connectedPeer, Payload.modifierTypeId, payloadMods))
       deliveryManager.send(downloadedModifiersValidator, ModifiersForValidating(connectedPeer, Transaction.modifierTypeId, transactionsMods))
 
-      val modifier1 = nodeViewHolder.expectMsgPF[Option[ModifierFromRemote]](100 millis) {
-        case msg@ModifierFromRemote(modifier) if modifier.modifierTypeId == Header.modifierTypeId => Some(msg)
-        case _ => None
-      }
-      val modifier2 = nodeViewHolder.expectMsgPF[Option[ModifierFromRemote]](1000 millis) {
-        case msg@ModifierFromRemote(modifier) if modifier.modifierTypeId == Payload.modifierTypeId => Some(msg)
-        case _ => None
-      }
-
-      assert(modifier1.nonEmpty)
-      assert(modifier2.nonEmpty)
+//      val modifier1 = nodeViewHolder.expectMsgPF[Option[ModifierFromRemote]](100 millis) {
+//        case msg@ModifierFromRemote(modifier) if modifier.modifierTypeId == Header.modifierTypeId => Some(msg)
+//        case _ => None
+//      }
+//      val modifier2 = nodeViewHolder.expectMsgPF[Option[ModifierFromRemote]](1000 millis) {
+//        case msg@ModifierFromRemote(modifier) if modifier.modifierTypeId == Payload.modifierTypeId => Some(msg)
+//        case _ => None
+//      }
+//
+//      assert(modifier1.nonEmpty)
+//      assert(modifier2.nonEmpty)
     }
 
     def generateNextBlock(history: History, difficultyDiff: BigInt = 0, prevId: Option[ModifierId] = None, txsQty: Int = 100,
@@ -113,3 +114,10 @@ class DownloadedModifiersValidatorSpeedTests extends WordSpecLike
   }
 
 }
+
+/*
+Time Transaction.id: ModifierId: 91ms
+Time Transaction.messageToSign: 88ms
+Time fromProto.parseBytes: 35ms
+Time Transaction.semanticValidity: 74ms
+ */

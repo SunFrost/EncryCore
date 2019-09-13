@@ -2,29 +2,29 @@ package encry.utils
 
 object PerfomanceUtils {
 
-  private val sb = new StringBuffer()
   private var timeMap: Map[String, Long] = Map()
+  private var sumMap: Map[String, Long] = Map()
 
   def time[T](label: String, body: => T): T = {
-    val start = System.currentTimeMillis()
+    val start = System.nanoTime()
     val result = body
-    sb.append(s"Time $label: ${System.currentTimeMillis() - start}ms\n")
+    sumMap += label -> (System.nanoTime() - start)
     result
   }
 
   def start(label: String) {
-    timeMap += label -> System.currentTimeMillis()
+    timeMap += label -> System.nanoTime()
   }
 
   def finish(label: String) {
     timeMap.get(label).foreach { start =>
-      sb.append(s"Time $label: ${System.currentTimeMillis() - start}ms\n")
+      sumMap += label -> (System.nanoTime() - start)
       timeMap -= label
     }
   }
 
   def printTimes() {
-    println(sb.toString)
+    sumMap.map(e => f"Time ${e._1}: ${e._2/1000000.0}%.3fms").foreach(println)
   }
 
 }
